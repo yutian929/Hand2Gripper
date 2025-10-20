@@ -11,8 +11,8 @@ HAND_PROCESSOR_HAND_DETECTOR_IOU_THRESHOLD = 0.5
 HAND_PROCESSOR_HAND_DETECTOR_CONF_THRESHOLD = 0.3
 HAND_PROCESSOR_WILOR_MODEL_RESCALE_FACTOR = 2.0
 HAND_PROCESSOR_DEVICE = 'auto'
-HAND_PROCESSOR_VIS_HAND_2D_SKELETON = True
-HAND_PROCESSOR_VIS_HAND_MESH = True
+HAND_PROCESSOR_VIS_HAND_2D_SKELETON = False
+HAND_PROCESSOR_VIS_HAND_MESH = False
 
 class BaseConfig:
   def __init__(self):
@@ -41,14 +41,23 @@ class HandProcessorConfig(BaseConfig):
     # save
     self.vis_hand_2D_skeleton_images_dir = os.path.join(self.processor_output_dir, "vis_hand_2D_skeleton_images")
     self.vis_hand_mesh_images_dir = os.path.join(self.processor_output_dir, "vis_hand_mesh_images")
-    self.reconstruction_results_dir = os.path.join(self.processor_output_dir, "reconstruction_results")
+    self.hand_processor_results_dir = os.path.join(self.processor_output_dir, "hand_processor_results")
 
 CONTACT_PROCESSOR_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, 'contact_processor')
-
+CONTACT_PROCESSOR_BACKBONE = 'hamer'
+CONTACT_PROCESSOR_CHECKPOINT_PATH = os.path.join(ROOT_DIR, 'submodules', 'Hand2Gripper_HACO', 'base_data', 'release_checkpoint', 'haco_final_hamer_checkpoint.ckpt')
+CONTACT_PROCESSOR_VIS_CONTACT_MASK = False
+CONTACT_PROCESSOR_VIS_CONTACT_RENDERED = False
 
 class ContactProcessorConfig(BaseConfig):
   def __init__(self):
     super().__init__()
     # Base Config
     self.processor_output_dir = CONTACT_PROCESSOR_OUTPUT_DIR
-    
+    # contact estimator
+    self.backbone = CONTACT_PROCESSOR_BACKBONE
+    self.checkpoint_path = CONTACT_PROCESSOR_CHECKPOINT_PATH
+    self.log_dir = CONTACT_PROCESSOR_OUTPUT_DIR
+    # vis
+
+    # save

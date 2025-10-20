@@ -31,7 +31,7 @@ class HandProcessor:
         # save dirs
         self.vis_hand_2D_skeleton_images_dir = self.hand_processor_config.vis_hand_2D_skeleton_images_dir
         self.vis_hand_mesh_images_dir = self.hand_processor_config.vis_hand_mesh_images_dir
-        self.reconstruction_results_dir = self.hand_processor_config.reconstruction_results_dir
+        self.hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
 
     def _process_single_sample(self, sample_id: int, color_image: Union[str, np.ndarray], depth_image: Union[str, np.ndarray]) -> np.ndarray:
         # read image
@@ -70,7 +70,7 @@ class HandProcessor:
                 self._vis_hand_mesh_images(sample_id, color, bboxes, is_right, reconstruction_results, self.vis_hand_mesh_images_dir)
         
         # save results
-        self._save_results(sample_id, bboxes, is_right, reconstruction_results, self.reconstruction_results_dir)
+        self._save_results(sample_id, bboxes, is_right, reconstruction_results, self.hand_processor_results_dir)
 
     def _vis_hand_2D_skeleton_images(self, sample_id: int, color: np.ndarray, bboxes: List[List[int]], is_right: List[bool], reconstruction_results: dict, save_dir: str):
         os.makedirs(save_dir, exist_ok=True)
@@ -79,7 +79,7 @@ class HandProcessor:
             bbox = bboxes[idx]
             is_right_hand = is_right[idx]
             vis_image = vis_hand_2D_skeleton(color, joints_2d, bbox, is_right_hand)
-            cv2.imwrite(os.path.join(save_dir, f"{sample_id}_{idx+1}.png"), vis_image)
+            cv2.imwrite(os.path.join(save_dir, f"{sample_id}_{idx}.png"), vis_image)
     
     def _vis_hand_mesh_images(self, sample_id: int, color: np.ndarray, bboxes: List[List[int]], is_right: List[bool], reconstruction_results: dict, save_dir: str):
         os.makedirs(save_dir, exist_ok=True)
@@ -88,7 +88,7 @@ class HandProcessor:
             bbox = bboxes[idx]
             is_right_hand = is_right[idx]
             vis_image = vis_hand_mesh(color, hand_mesh, bbox, is_right_hand)
-            cv2.imwrite(os.path.join(save_dir, f"{sample_id}_{idx+1}.png"), vis_image)
+            cv2.imwrite(os.path.join(save_dir, f"{sample_id}_{idx}.png"), vis_image)
     
     def _generate_joints_2D(self, reconstruction_results: dict) -> List[np.ndarray]:
         hand_2D_keypoints = []
@@ -136,7 +136,7 @@ class HandProcessor:
         assert len(bboxes) == len(is_right) == len(reconstruction_results['vertices']), "Number of bboxes, is_right, and vertices must be the same"
         for idx in range(len(reconstruction_results['vertices'])):
             data = {
-                'bbox': bboxes[idx],                                                            # (4,)
+                'bbox': _to_numpy(bboxes[idx]).astype(np.int32),                                # (4,)
                 'is_right': is_right[idx],                                                      # bool
                 'vertices': _to_numpy(reconstruction_results['vertices'][idx]),                 # (778, 3)
                 'vertices_aligned': _to_numpy(reconstruction_results['vertices_aligned'][idx]), # (778, 3)
@@ -146,7 +146,7 @@ class HandProcessor:
                 'joints_2d': _to_numpy(reconstruction_results['joints_2d'][idx]),               # (21, 2)
                 'img_size': _to_numpy(reconstruction_results.get('img_size'))                   # (W,H)
             }
-            out_path = os.path.join(save_dir, f"{sample_id}_{idx+1}.npz")
+            out_path = os.path.join(save_dir, f"{sample_id}_{idx}.npz")
             np.savez_compressed(out_path, **data)
 
 
