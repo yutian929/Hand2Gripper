@@ -1,0 +1,130 @@
+import cv2
+import numpy as np
+from typing import List, Tuple
+
+def vis_hand_2D(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float], 
+                is_right: bool, keypoint_color: Tuple[int, int, int] = (0, 255, 0),
+                bbox_color: Tuple[int, int, int] = (255, 0, 0)) -> np.ndarray:
+    """
+    在图像上可视化单个手的2D关键点
+    
+    Args:
+        image: 输入图像 (BGR格式)
+        kpts_2d: 单个手的2D关键点 (N, 2) 的numpy数组
+        bbox: 边界框 [x1, y1, x2, y2]
+        is_right: 手部类型 (True=右手, False=左手)
+        keypoint_color: 关键点颜色 (BGR)
+        bbox_color: 边界框颜色 (BGR)
+    
+    Returns:
+        可视化后的图像
+    """
+    vis_image = image.copy()
+    
+    # 绘制关键点
+    if kpts_2d is not None and len(kpts_2d) > 0:
+        for j, (x, y) in enumerate(kpts_2d):
+            if not (np.isnan(x) or np.isnan(y)):
+                cv2.circle(vis_image, (int(x), int(y)), 3, keypoint_color, -1)
+                # 可选：添加关键点编号
+                cv2.putText(vis_image, str(j), (int(x)+5, int(y)-5), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.3, keypoint_color, 1)
+    
+    # 绘制边界框
+    if bbox is not None:
+        x1, y1, x2, y2 = map(int, bbox)
+        cv2.rectangle(vis_image, (x1, y1), (x2, y2), bbox_color, 2)
+        
+        # 添加手部类型标签
+        hand_type = "Right" if is_right else "Left"
+        cv2.putText(vis_image, hand_type, (x1, y1-10), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, bbox_color, 2)
+    
+    return vis_image
+
+def vis_hand_mesh(image: np.ndarray, rendered_mesh: np.ndarray, bbox: List[float], 
+                 is_right: bool, bbox_color: Tuple[int, int, int] = (255, 0, 0)) -> np.ndarray:
+    """
+    在图像上可视化手部mesh渲染结果
+    
+    Args:
+        image: 输入图像 (BGR格式)
+        rendered_mesh: 渲染的mesh图像 (H, W, 4) 包含RGBA通道
+        bbox: 边界框 [x1, y1, x2, y2]
+        is_right: 手部类型 (True=右手, False=左手)
+        bbox_color: 边界框颜色 (BGR)
+    
+    Returns:
+        可视化后的图像
+    """
+    # 将输入图像转换为RGB格式并归一化
+    input_img = image.astype(np.float32)[:, :, ::-1] / 255.0
+    input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
+    
+    # 将mesh渲染结果叠加到原图上
+    if rendered_mesh.shape[2] == 4:  # RGBA
+        # Alpha blending
+        input_img_overlay = input_img[:, :, :3] * (1 - rendered_mesh[:, :, 3:]) + rendered_mesh[:, :, :3] * rendered_mesh[:, :, 3:]
+    else:  # RGB
+        input_img_overlay = rendered_mesh[:, :, :3]
+    
+    # 转换回BGR格式
+    vis_image = (255 * input_img_overlay[:, :, ::-1]).astype(np.uint8)
+    
+    # 绘制边界框
+    if bbox is not None:
+        x1, y1, x2, y2 = map(int, bbox)
+        cv2.rectangle(vis_image, (x1, y1), (x2, y2), bbox_color, 2)
+        
+        # 添加手部类型标签
+        hand_type = "Right" if is_right else "Left"
+        cv2.putText(vis_image, f"{hand_type} Hand Mesh", (x1, y1-10), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, bbox_color, 2)
+    
+    return vis_image
+
+def vis_hand_2D_skeleton(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float], 
+                             is_right: bool, keypoint_color: Tuple[int, int, int] = (0, 255, 0),
+                             bbox_color: Tuple[int, int, int] = (255, 0, 0),
+                             skeleton_color: Tuple[int, int, int] = (0, 255, 255)) -> np.ndarray:
+    """
+    在图像上可视化手部2D关键点并绘制骨架连接
+    
+    Args:
+        image: 输入图像 (BGR格式)
+        kpts_2d: 单个手的2D关键点 (21, 2) 的numpy数组
+        bbox: 边界框 [x1, y1, x2, y2]
+        is_right: 手部类型 (True=右手, False=左手)
+        keypoint_color: 关键点颜色 (BGR)
+        bbox_color: 边界框颜色 (BGR)
+        skeleton_color: 骨架连接线颜色 (BGR)
+    
+    Returns:
+        可视化后的图像
+    """
+    vis_image = vis_hand_2D(image, kpts_2d, bbox, is_right, keypoint_color, bbox_color)
+    
+    # MANO手部骨架连接定义
+    skeleton_connections = [
+        # 拇指
+        (0, 1), (1, 2), (2, 3), (3, 4),
+        # 食指
+        (0, 5), (5, 6), (6, 7), (7, 8),
+        # 中指
+        (0, 9), (9, 10), (10, 11), (11, 12),
+        # 无名指
+        (0, 13), (13, 14), (14, 15), (15, 16),
+        # 小指
+        (0, 17), (17, 18), (18, 19), (19, 20),
+    ]
+    
+    # 绘制骨架连接线
+    if kpts_2d is not None and len(kpts_2d) >= 21:
+        for start_idx, end_idx in skeleton_connections:
+            if (start_idx < len(kpts_2d) and end_idx < len(kpts_2d) and
+                not (np.isnan(kpts_2d[start_idx]).any() or np.isnan(kpts_2d[end_idx]).any())):
+                start_point = (int(kpts_2d[start_idx][0]), int(kpts_2d[start_idx][1]))
+                end_point = (int(kpts_2d[end_idx][0]), int(kpts_2d[end_idx][1]))
+                cv2.line(vis_image, start_point, end_point, skeleton_color, 2)
+    
+    return vis_image

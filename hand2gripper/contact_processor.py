@@ -1,0 +1,1 @@
+from hand2gripper_haco import HACOContactEstimator
