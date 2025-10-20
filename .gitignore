@@ -1,3 +1,5 @@
+__pycache__
+*.pyc
 hand2gripper/raw/
 hand2gripper/output/
 hand2gripper/base_data/
