@@ -144,7 +144,7 @@ class HandProcessor:
                 'cam_t': _to_numpy(reconstruction_results['cam_t'][idx]),                       # (3,)
                 'kpts_2d': _to_numpy(reconstruction_results['kpts_2d'][idx]),                   # (778, 2)
                 'joints_2d': _to_numpy(reconstruction_results['joints_2d'][idx]),               # (21, 2)
-                'img_size': _to_numpy(reconstruction_results.get('img_size'))                   # (W,H)
+                'img_size': _to_numpy(reconstruction_results.get('img_size')).astype(np.int32)  # (W,H)
             }
             out_path = os.path.join(save_dir, f"{sample_id}_{idx}.npz")
             np.savez_compressed(out_path, **data)

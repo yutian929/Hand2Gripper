@@ -3,8 +3,14 @@ import os
 # Base Config
 ROOT_DIR = os.path.dirname(__file__)
 BASE_OUTPUT_DIR = os.path.join(ROOT_DIR, 'output')
+class BaseConfig:
+  def __init__(self):
+    self.base_output_dir = BASE_OUTPUT_DIR
+
+
+
+
 # Hand Processor Config
-HAND_PROCESSOR_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, 'hand_processor')
 HAND_PROCESSOR_MODEL_DIR = os.path.join(ROOT_DIR, 'submodules', 'Hand2Gripper_WiLoR', 'hand2gripper_wilor', 'pretrained_models')
 HAND_PROCESSOR_MANO_DATA_DIR = os.path.join(ROOT_DIR, 'submodules', 'Hand2Gripper_WiLoR', 'hand2gripper_wilor', 'mano_data')
 HAND_PROCESSOR_HAND_DETECTOR_IOU_THRESHOLD = 0.5
@@ -14,15 +20,11 @@ HAND_PROCESSOR_DEVICE = 'auto'
 HAND_PROCESSOR_VIS_HAND_2D_SKELETON = False
 HAND_PROCESSOR_VIS_HAND_MESH = False
 
-class BaseConfig:
-  def __init__(self):
-    self.base_output_dir = BASE_OUTPUT_DIR
-  
 class HandProcessorConfig(BaseConfig):
   def __init__(self):
     super().__init__()
     # Base Config
-    self.processor_output_dir = HAND_PROCESSOR_OUTPUT_DIR
+    self.processor_output_dir = os.path.join(self.base_output_dir, 'hand_processor')
     self.model_dir = HAND_PROCESSOR_MODEL_DIR
     self.device = HAND_PROCESSOR_DEVICE
     # hand detector
@@ -43,21 +45,31 @@ class HandProcessorConfig(BaseConfig):
     self.vis_hand_mesh_images_dir = os.path.join(self.processor_output_dir, "vis_hand_mesh_images")
     self.hand_processor_results_dir = os.path.join(self.processor_output_dir, "hand_processor_results")
 
-CONTACT_PROCESSOR_OUTPUT_DIR = os.path.join(BASE_OUTPUT_DIR, 'contact_processor')
+
+
+
+
+
+
+# Contact Processor Config
 CONTACT_PROCESSOR_BACKBONE = 'hamer'
 CONTACT_PROCESSOR_CHECKPOINT_PATH = os.path.join(ROOT_DIR, 'submodules', 'Hand2Gripper_HACO', 'base_data', 'release_checkpoint', 'haco_final_hamer_checkpoint.ckpt')
-CONTACT_PROCESSOR_VIS_CONTACT_MASK = False
-CONTACT_PROCESSOR_VIS_CONTACT_RENDERED = False
+CONTACT_PROCESSOR_VIS_CONTACT_RENDERED = True
+CONTACT_PROCESSOR_VIS_CROP_IMG = True
 
 class ContactProcessorConfig(BaseConfig):
   def __init__(self):
     super().__init__()
     # Base Config
-    self.processor_output_dir = CONTACT_PROCESSOR_OUTPUT_DIR
+    self.processor_output_dir = os.path.join(self.base_output_dir, 'contact_processor')
     # contact estimator
     self.backbone = CONTACT_PROCESSOR_BACKBONE
     self.checkpoint_path = CONTACT_PROCESSOR_CHECKPOINT_PATH
-    self.log_dir = CONTACT_PROCESSOR_OUTPUT_DIR
+    self.log_dir = self.processor_output_dir
     # vis
-
+    self.vis_contact_rendered = CONTACT_PROCESSOR_VIS_CONTACT_RENDERED
+    self.vis_crop_img = CONTACT_PROCESSOR_VIS_CROP_IMG
     # save
+    self.vis_contact_rendered_images_dir = os.path.join(self.processor_output_dir, "vis_contact_rendered_images")
+    self.vis_crop_img_images_dir = os.path.join(self.processor_output_dir, "vis_crop_img_images")
+    self.contact_processor_results_dir = os.path.join(self.processor_output_dir, "contact_processor_results")
