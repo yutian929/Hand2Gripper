@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from typing import List, Tuple
 
-def vis_hand_2D(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float], 
+def vis_hand_2D(image: np.ndarray, joints_2d: np.ndarray, bbox: List[float], 
                 is_right: bool, keypoint_color: Tuple[int, int, int] = (0, 255, 0),
                 bbox_color: Tuple[int, int, int] = (255, 0, 0)) -> np.ndarray:
     """
@@ -10,7 +10,7 @@ def vis_hand_2D(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float],
     
     Args:
         image: 输入图像 (BGR格式)
-        kpts_2d: 单个手的2D关键点 (N, 2) 的numpy数组
+        joints_2d: 单个手的2D关键点 (N, 2) 的numpy数组
         bbox: 边界框 [x1, y1, x2, y2]
         is_right: 手部类型 (True=右手, False=左手)
         keypoint_color: 关键点颜色 (BGR)
@@ -22,8 +22,8 @@ def vis_hand_2D(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float],
     vis_image = image.copy()
     
     # 绘制关键点
-    if kpts_2d is not None and len(kpts_2d) > 0:
-        for j, (x, y) in enumerate(kpts_2d):
+    if joints_2d is not None and len(joints_2d) > 0:
+        for j, (x, y) in enumerate(joints_2d):
             if not (np.isnan(x) or np.isnan(y)):
                 cv2.circle(vis_image, (int(x), int(y)), 3, keypoint_color, -1)
                 # 可选：添加关键点编号
@@ -83,7 +83,7 @@ def vis_hand_mesh(image: np.ndarray, rendered_mesh: np.ndarray, bbox: List[float
     
     return vis_image
 
-def vis_hand_2D_skeleton(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[float], 
+def vis_hand_2D_skeleton(image: np.ndarray, joints_2d: np.ndarray, bbox: List[float], 
                              is_right: bool, keypoint_color: Tuple[int, int, int] = (0, 255, 0),
                              bbox_color: Tuple[int, int, int] = (255, 0, 0),
                              skeleton_color: Tuple[int, int, int] = (0, 255, 255)) -> np.ndarray:
@@ -92,7 +92,7 @@ def vis_hand_2D_skeleton(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[floa
     
     Args:
         image: 输入图像 (BGR格式)
-        kpts_2d: 单个手的2D关键点 (21, 2) 的numpy数组
+        joints_2d: 单个手的2D关键点 (21, 2) 的numpy数组
         bbox: 边界框 [x1, y1, x2, y2]
         is_right: 手部类型 (True=右手, False=左手)
         keypoint_color: 关键点颜色 (BGR)
@@ -102,7 +102,7 @@ def vis_hand_2D_skeleton(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[floa
     Returns:
         可视化后的图像
     """
-    vis_image = vis_hand_2D(image, kpts_2d, bbox, is_right, keypoint_color, bbox_color)
+    vis_image = vis_hand_2D(image, joints_2d, bbox, is_right, keypoint_color, bbox_color)
     
     # MANO手部骨架连接定义
     skeleton_connections = [
@@ -119,12 +119,31 @@ def vis_hand_2D_skeleton(image: np.ndarray, kpts_2d: np.ndarray, bbox: List[floa
     ]
     
     # 绘制骨架连接线
-    if kpts_2d is not None and len(kpts_2d) >= 21:
+    if joints_2d is not None and len(joints_2d) >= 21:
         for start_idx, end_idx in skeleton_connections:
-            if (start_idx < len(kpts_2d) and end_idx < len(kpts_2d) and
-                not (np.isnan(kpts_2d[start_idx]).any() or np.isnan(kpts_2d[end_idx]).any())):
-                start_point = (int(kpts_2d[start_idx][0]), int(kpts_2d[start_idx][1]))
-                end_point = (int(kpts_2d[end_idx][0]), int(kpts_2d[end_idx][1]))
+            if (start_idx < len(joints_2d) and end_idx < len(joints_2d) and
+                not (np.isnan(joints_2d[start_idx]).any() or np.isnan(joints_2d[end_idx]).any())):
+                start_point = (int(joints_2d[start_idx][0]), int(joints_2d[start_idx][1]))
+                end_point = (int(joints_2d[end_idx][0]), int(joints_2d[end_idx][1]))
                 cv2.line(vis_image, start_point, end_point, skeleton_color, 2)
     
+    return vis_image
+
+def vis_hand_2D_skeleton_contact(image: np.ndarray, joints_2d: np.ndarray, bbox: List[float], 
+                                 is_right: bool, contact_joint_out: np.ndarray,
+                                 eval_threshold: float = 0.5,
+                                 keypoint_color: Tuple[int, int, int] = (0, 255, 0),
+                                 bbox_color: Tuple[int, int, int] = (255, 0, 0),
+                                 skeleton_color: Tuple[int, int, int] = (0, 255, 255),
+                                 contact_color: Tuple[int, int, int] = (0, 0, 255)) -> np.ndarray:
+    """
+    在图像上可视化手部2D关键点并绘制骨架连接，并根据接触关节点输出绘制接触关节点
+    """
+    vis_image = vis_hand_2D_skeleton(image, joints_2d, bbox, is_right, keypoint_color, bbox_color, skeleton_color)
+    # 对contact_joint_out，用numpy，做softmax
+    contact_joint_out = np.exp(contact_joint_out) / np.sum(np.exp(contact_joint_out))
+    # 根据contact_joint_out，绘制接触关节点
+    for i in range(len(contact_joint_out)):
+        if contact_joint_out[i] > eval_threshold:
+            cv2.circle(vis_image, (int(joints_2d[i][0]), int(joints_2d[i][1])), 3, contact_color, -1)
     return vis_image

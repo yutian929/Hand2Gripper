@@ -136,16 +136,17 @@ class HandProcessor:
         assert len(bboxes) == len(is_right) == len(reconstruction_results['vertices']), "Number of bboxes, is_right, and vertices must be the same"
         for idx in range(len(reconstruction_results['vertices'])):
             data = {
-                'bbox': _to_numpy(bboxes[idx]).astype(np.int32),                                # (4,)
-                'is_right': is_right[idx],                                                      # bool
-                'vertices': _to_numpy(reconstruction_results['vertices'][idx]),                 # (778, 3)
-                'vertices_aligned': _to_numpy(reconstruction_results['vertices_aligned'][idx]), # (778, 3)
-                'joints': _to_numpy(reconstruction_results['joints'][idx]),                     # (21, 3)
-                'cam_t': _to_numpy(reconstruction_results['cam_t'][idx]),                       # (3,)
-                'kpts_2d': _to_numpy(reconstruction_results['kpts_2d'][idx]),                   # (778, 2)
-                'joints_2d': _to_numpy(reconstruction_results['joints_2d'][idx]),               # (21, 2)
-                'img_size': _to_numpy(reconstruction_results.get('img_size')).astype(np.int32)  # (W,H)
+                'bbox': _to_numpy(bboxes[idx]).astype(np.int32),                                    # (4,)
+                'is_right': is_right[idx],                                                          # bool
+                'vertices': _to_numpy(reconstruction_results['vertices'][idx]),                     # (778, 3)
+                'vertices_aligned': _to_numpy(reconstruction_results['vertices_aligned'][idx]),     # (778, 3)
+                'joints': _to_numpy(reconstruction_results['joints'][idx]),                         # (21, 3)
+                'cam_t': _to_numpy(reconstruction_results['cam_t'][idx]),                           # (3,)
+                'kpts_2d': _to_numpy(reconstruction_results['kpts_2d'][idx]),                       # (778, 2)
+                'joints_2d': _to_numpy(reconstruction_results['joints_2d'][idx]).astype(np.int32),  # (21, 2)
+                'img_size': _to_numpy(reconstruction_results.get('img_size')).astype(np.int32)      # (W,H)
             }
+            breakpoint()
             out_path = os.path.join(save_dir, f"{sample_id}_{idx}.npz")
             np.savez_compressed(out_path, **data)
 

@@ -1,4 +1,6 @@
 import os
+from typing import List
+import numpy as np
 
 # Base Config
 ROOT_DIR = os.path.dirname(__file__)
@@ -73,3 +75,95 @@ class ContactProcessorConfig(BaseConfig):
     self.vis_contact_rendered_images_dir = os.path.join(self.processor_output_dir, "vis_contact_rendered_images")
     self.vis_crop_img_images_dir = os.path.join(self.processor_output_dir, "vis_crop_img_images")
     self.contact_processor_results_dir = os.path.join(self.processor_output_dir, "contact_processor_results")
+
+
+
+
+
+class DataManager:
+    def __init__(self):
+        pass
+    
+    # read hand processor results
+    def _read_bbox(self, sample_id: int) -> List[np.ndarray]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        bboxes = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                bbox = np.load(os.path.join(hand_processor_results_dir, file))['bbox']
+                bboxes.append(bbox)
+        return bboxes
+    
+    def _read_is_right(self, sample_id: int) -> List[bool]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        is_right = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                is_right.append(np.load(os.path.join(hand_processor_results_dir, file))['is_right'])
+        return is_right
+    
+    def _read_img_size(self, sample_id: int) -> np.ndarray:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                img_size = np.load(os.path.join(hand_processor_results_dir, file))['img_size']
+                return img_size
+        return None
+    
+    def _read_joints(self, sample_id: int) -> List[np.ndarray]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        joints = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                joints.append(np.load(os.path.join(hand_processor_results_dir, file))['joints'])
+        return joints
+    
+    def _read_joints_2d(self, sample_id: int) -> List[np.ndarray]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        joints_2d = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                joints_2d.append(np.load(os.path.join(hand_processor_results_dir, file))['joints_2d'])
+        return joints_2d
+    
+    def _read_vertices(self, sample_id: int) -> List[np.ndarray]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        vertices = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                vertices.append(np.load(os.path.join(hand_processor_results_dir, file))['vertices'])
+        return vertices
+    
+    def _read_vertices_aligned(self, sample_id: int) -> List[np.ndarray]:
+        hand_processor_config = HandProcessorConfig()
+        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        vertices_aligned = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                vertices_aligned.append(np.load(os.path.join(hand_processor_results_dir, file))['vertices_aligned'])
+        return vertices_aligned
+    
+    # read contact processor results
+    def _read_contact_joint_out(self, sample_id: int) -> List[np.ndarray]:
+        contact_processor_config = ContactProcessorConfig()
+        contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
+        contact_joint_out = []
+        for file in os.listdir(contact_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                contact_joint_out.append(np.load(os.path.join(contact_processor_results_dir, file))['contact_joint_out'])
+        return contact_joint_out
+    
+    def _read_contact_out(self, sample_id: int) -> List[np.ndarray]:
+        contact_processor_config = ContactProcessorConfig()
+        contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
+        contact_out = []
+        for file in os.listdir(contact_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                contact_out.append(np.load(os.path.join(contact_processor_results_dir, file))['contact_out'])
+        return contact_out
