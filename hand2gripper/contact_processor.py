@@ -119,14 +119,14 @@ class ContactProcessor:
 
 
 if __name__ == '__main__':
-    root_samples_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
-    for samples_id in os.listdir(root_samples_dir):
-        if os.path.isdir(os.path.join(root_samples_dir, samples_id)):
+    raw_samples_root_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
+    for samples_id in os.listdir(raw_samples_root_dir):
+        if os.path.isdir(os.path.join(raw_samples_root_dir, samples_id)):
             contact_processor_config = ContactProcessorConfig(samples_id)
             data_manager = DataManager(samples_id)
             contact_processor = ContactProcessor(contact_processor_config, data_manager)
-            video_path = os.path.join(root_samples_dir, samples_id, "video.mp4")
-            depth_npy_path = os.path.join(root_samples_dir, samples_id, "depth.npy")
+            video_path = os.path.join(raw_samples_root_dir, samples_id, "video.mp4")
+            depth_npy_path = os.path.join(raw_samples_root_dir, samples_id, "depth.npy")
             video = mediapy.read_video(video_path)
             depth_npy = np.load(depth_npy_path)  # meters
             assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"

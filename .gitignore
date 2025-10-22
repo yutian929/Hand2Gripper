@@ -3,3 +3,4 @@ __pycache__
 hand2gripper/raw/
 hand2gripper/output/
 hand2gripper/base_data/
+*.pt

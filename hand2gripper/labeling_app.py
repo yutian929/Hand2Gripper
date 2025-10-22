@@ -12,6 +12,8 @@ class LabelingApp:
     def __init__(self, labeling_app_config: LabelingAppConfig, data_manager: DataManager):
         self.labeling_app_config = labeling_app_config
         self.labeling_app_results_dir = self.labeling_app_config.labeling_app_results_dir
+        self.labeling_app_color_image_dir = self.labeling_app_config.labeling_app_color_image_dir
+        self.labeling_app_depth_npy_dir = self.labeling_app_config.labeling_app_depth_npy_dir
         self.data_manager = data_manager
 
     def _process_single_sample(self, sample_id: int, color_image: np.ndarray, depth_image: np.ndarray):
@@ -28,10 +30,12 @@ class LabelingApp:
         assert len(bboxes) == len(is_right) == len(joints_2d) == len(contact_joint_out) == len(vertices_aligned) == len(joints) == len(contact_out), "Number of bboxes, is_right, joints_2d, contact_joint_out, vertices_aligned, joints, and contact_out must be the same"
         
         for hand_id in range(len(is_right)):
-            selected_gripper_joints_seq = self._choose_gripper_joints_seq(sample_id, hand_id, color, bboxes[hand_id], is_right[hand_id], joints_2d[hand_id], contact_joint_out[hand_id])
-            # selected_gripper_joints_seq = [8, 4]
+            # selected_gripper_joints_seq = self._choose_gripper_joints_seq(sample_id, hand_id, color, bboxes[hand_id], is_right[hand_id], joints_2d[hand_id], contact_joint_out[hand_id])
+            selected_gripper_joints_seq = [8, 4]
             print(f"Selected gripper joints sequence for hand {hand_id}: {selected_gripper_joints_seq}")
             self._save_label_results(sample_id, hand_id, bboxes[hand_id],is_right[hand_id], vertices_aligned[hand_id], joints[hand_id], contact_out[hand_id], contact_joint_out[hand_id], selected_gripper_joints_seq, self.labeling_app_results_dir)
+            self._save_color_image(sample_id, hand_id, color, self.labeling_app_color_image_dir)
+            self._save_depth_npy(sample_id, hand_id, depth, self.labeling_app_depth_npy_dir)
     
     def _choose_gripper_joints_seq(self, sample_id: int, hand_id: int, color: np.ndarray, bbox: np.ndarray, is_right_hand: bool, joints_2d_hand: np.ndarray, contact_joint_out_hand: np.ndarray) -> List[int]:
         """
@@ -98,17 +102,27 @@ class LabelingApp:
         }
         out_path = os.path.join(save_dir, f"{sample_id}_{hand_id}.npz")
         np.savez_compressed(out_path, **data)
+    
+    def _save_color_image(self, sample_id: int, hand_id: int, color: np.ndarray, save_dir: str):
+        os.makedirs(save_dir, exist_ok=True)
+        out_path = os.path.join(save_dir, f"{sample_id}_{hand_id}.png")
+        cv2.imwrite(out_path, color)
+    
+    def _save_depth_npy(self, sample_id: int, hand_id: int, depth: np.ndarray, save_dir: str):
+        os.makedirs(save_dir, exist_ok=True)
+        out_path = os.path.join(save_dir, f"{sample_id}_{hand_id}.npy")
+        np.save(out_path, depth)
 
 
 if __name__ == '__main__':
-    root_samples_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
-    for samples_id in os.listdir(root_samples_dir):
-        if os.path.isdir(os.path.join(root_samples_dir, samples_id)):
+    raw_samples_root_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
+    for samples_id in os.listdir(raw_samples_root_dir):
+        if os.path.isdir(os.path.join(raw_samples_root_dir, samples_id)):
             labeling_app_config = LabelingAppConfig(samples_id)
             data_manager = DataManager(samples_id)
             labeling_app = LabelingApp(labeling_app_config, data_manager)
-            video_path = os.path.join(root_samples_dir, samples_id, "video.mp4")
-            depth_npy_path = os.path.join(root_samples_dir, samples_id, "depth.npy")
+            video_path = os.path.join(raw_samples_root_dir, samples_id, "video.mp4")
+            depth_npy_path = os.path.join(raw_samples_root_dir, samples_id, "depth.npy")
             video = mediapy.read_video(video_path)
             depth_npy = np.load(depth_npy_path)  # meters
             assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"

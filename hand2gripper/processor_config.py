@@ -1,6 +1,7 @@
 import os
 from typing import List
 import numpy as np
+import cv2
 
 # Base Config
 ROOT_DIR = os.path.dirname(__file__)
@@ -19,8 +20,8 @@ HAND_PROCESSOR_HAND_DETECTOR_IOU_THRESHOLD = 0.5
 HAND_PROCESSOR_HAND_DETECTOR_CONF_THRESHOLD = 0.3
 HAND_PROCESSOR_WILOR_MODEL_RESCALE_FACTOR = 2.0
 HAND_PROCESSOR_DEVICE = 'auto'
-HAND_PROCESSOR_VIS_HAND_2D_SKELETON = False
-HAND_PROCESSOR_VIS_HAND_MESH = False
+HAND_PROCESSOR_VIS_HAND_2D_SKELETON = True
+HAND_PROCESSOR_VIS_HAND_MESH = True
 
 class HandProcessorConfig(BaseConfig):
   def __init__(self, samples_id: str):
@@ -77,17 +78,24 @@ class ContactProcessorConfig(BaseConfig):
 class LabelingAppConfig(BaseConfig):
   def __init__(self, samples_id: str):
     super().__init__()
-    self.labeling_app_results_dir = os.path.join(self.base_output_dir, samples_id, 'labeling_app_results')
+    self.labeling_app_output_dir = os.path.join(self.base_output_dir, samples_id, 'labeling_app')
+    self.labeling_app_results_dir = os.path.join(self.labeling_app_output_dir, 'labeling_app_results')
+    self.labeling_app_color_image_dir = os.path.join(self.labeling_app_output_dir, 'color_image')
+    self.labeling_app_depth_npy_dir = os.path.join(self.labeling_app_output_dir, 'depth_npy')
+
+
 
 
 class DataManager:
     def __init__(self, samples_id: str):
         self.samples_id = samples_id
-    
+        self.hand_processor_config = HandProcessorConfig(self.samples_id)
+        self.contact_processor_config = ContactProcessorConfig(self.samples_id)
+        self.labeling_app_config = LabelingAppConfig(self.samples_id)
+
     # read hand processor results
     def _read_bbox(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         bboxes = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -96,8 +104,7 @@ class DataManager:
         return bboxes
     
     def _read_is_right(self, sample_id: int) -> List[bool]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         is_right = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -105,8 +112,7 @@ class DataManager:
         return is_right
     
     def _read_img_size(self, sample_id: int) -> np.ndarray:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
                 img_size = np.load(os.path.join(hand_processor_results_dir, file))['img_size']
@@ -114,8 +120,7 @@ class DataManager:
         return None
     
     def _read_joints(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         joints = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -123,8 +128,7 @@ class DataManager:
         return joints
     
     def _read_joints_2d(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         joints_2d = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -132,8 +136,7 @@ class DataManager:
         return joints_2d
     
     def _read_vertices(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         vertices = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -141,8 +144,7 @@ class DataManager:
         return vertices
     
     def _read_vertices_aligned(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig(self.samples_id)
-        hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         vertices_aligned = []
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -151,8 +153,7 @@ class DataManager:
     
     # read contact processor results
     def _read_contact_joint_out(self, sample_id: int) -> List[np.ndarray]:
-        contact_processor_config = ContactProcessorConfig(self.samples_id)
-        contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
+        contact_processor_results_dir = self.contact_processor_config.contact_processor_results_dir
         contact_joint_out = []
         for file in os.listdir(contact_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -160,10 +161,34 @@ class DataManager:
         return contact_joint_out
     
     def _read_contact_out(self, sample_id: int) -> List[np.ndarray]:
-        contact_processor_config = ContactProcessorConfig(self.samples_id)
-        contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
+        contact_processor_results_dir = self.contact_processor_config.contact_processor_results_dir
         contact_out = []
         for file in os.listdir(contact_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
                 contact_out.append(np.load(os.path.join(contact_processor_results_dir, file))['contact_out'])
         return contact_out
+    
+    # read labeling app results
+    def _read_labeling_app_results(self, sample_id: int) -> List[np.ndarray]:
+        labeling_app_results_dir = self.labeling_app_config.labeling_app_results_dir
+        labeling_app_results = []
+        for file in os.listdir(labeling_app_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                labeling_app_results.append(np.load(os.path.join(labeling_app_results_dir, file)))
+        return labeling_app_results
+    
+    def _read_labeling_app_color_image(self, sample_id: int) -> List[np.ndarray]:
+        labeling_app_color_image_dir = self.labeling_app_config.labeling_app_color_image_dir
+        labeling_app_color_images = []
+        for file in os.listdir(labeling_app_color_image_dir):
+            if file.startswith(f"{sample_id}_"):
+                labeling_app_color_images.append(cv2.imread(os.path.join(labeling_app_color_image_dir, file)))
+        return labeling_app_color_images
+    
+    def _read_labeling_app_depth_npy(self, sample_id: int) -> List[np.ndarray]:
+        labeling_app_depth_npy_dir = self.labeling_app_config.labeling_app_depth_npy_dir
+        labeling_app_depth_npy = []
+        for file in os.listdir(labeling_app_depth_npy_dir):
+            if file.startswith(f"{sample_id}_"):
+                labeling_app_depth_npy.append(np.load(os.path.join(labeling_app_depth_npy_dir, file)))
+        return labeling_app_depth_npy
