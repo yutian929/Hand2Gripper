@@ -23,10 +23,10 @@ HAND_PROCESSOR_VIS_HAND_2D_SKELETON = False
 HAND_PROCESSOR_VIS_HAND_MESH = False
 
 class HandProcessorConfig(BaseConfig):
-  def __init__(self):
+  def __init__(self, samples_id: str):
     super().__init__()
     # Base Config
-    self.processor_output_dir = os.path.join(self.base_output_dir, 'hand_processor')
+    self.processor_output_dir = os.path.join(self.base_output_dir, samples_id, 'hand_processor')
     self.model_dir = HAND_PROCESSOR_MODEL_DIR
     self.device = HAND_PROCESSOR_DEVICE
     # hand detector
@@ -49,10 +49,6 @@ class HandProcessorConfig(BaseConfig):
 
 
 
-
-
-
-
 # Contact Processor Config
 CONTACT_PROCESSOR_BACKBONE = 'hamer'
 CONTACT_PROCESSOR_CHECKPOINT_PATH = os.path.join(ROOT_DIR, 'submodules', 'Hand2Gripper_HACO', 'base_data', 'release_checkpoint', 'haco_final_hamer_checkpoint.ckpt')
@@ -60,10 +56,10 @@ CONTACT_PROCESSOR_VIS_CONTACT_RENDERED = True
 CONTACT_PROCESSOR_VIS_CROP_IMG = True
 
 class ContactProcessorConfig(BaseConfig):
-  def __init__(self):
+  def __init__(self, samples_id: str):
     super().__init__()
     # Base Config
-    self.processor_output_dir = os.path.join(self.base_output_dir, 'contact_processor')
+    self.processor_output_dir = os.path.join(self.base_output_dir, samples_id, 'contact_processor')
     # contact estimator
     self.backbone = CONTACT_PROCESSOR_BACKBONE
     self.checkpoint_path = CONTACT_PROCESSOR_CHECKPOINT_PATH
@@ -77,16 +73,20 @@ class ContactProcessorConfig(BaseConfig):
     self.contact_processor_results_dir = os.path.join(self.processor_output_dir, "contact_processor_results")
 
 
-
+# Labeling App Config
+class LabelingAppConfig(BaseConfig):
+  def __init__(self, samples_id: str):
+    super().__init__()
+    self.labeling_app_results_dir = os.path.join(self.base_output_dir, samples_id, 'labeling_app_results')
 
 
 class DataManager:
-    def __init__(self):
-        pass
+    def __init__(self, samples_id: str):
+        self.samples_id = samples_id
     
     # read hand processor results
     def _read_bbox(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         bboxes = []
         for file in os.listdir(hand_processor_results_dir):
@@ -96,7 +96,7 @@ class DataManager:
         return bboxes
     
     def _read_is_right(self, sample_id: int) -> List[bool]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         is_right = []
         for file in os.listdir(hand_processor_results_dir):
@@ -105,7 +105,7 @@ class DataManager:
         return is_right
     
     def _read_img_size(self, sample_id: int) -> np.ndarray:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         for file in os.listdir(hand_processor_results_dir):
             if file.startswith(f"{sample_id}_"):
@@ -114,7 +114,7 @@ class DataManager:
         return None
     
     def _read_joints(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         joints = []
         for file in os.listdir(hand_processor_results_dir):
@@ -123,7 +123,7 @@ class DataManager:
         return joints
     
     def _read_joints_2d(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         joints_2d = []
         for file in os.listdir(hand_processor_results_dir):
@@ -132,7 +132,7 @@ class DataManager:
         return joints_2d
     
     def _read_vertices(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         vertices = []
         for file in os.listdir(hand_processor_results_dir):
@@ -141,7 +141,7 @@ class DataManager:
         return vertices
     
     def _read_vertices_aligned(self, sample_id: int) -> List[np.ndarray]:
-        hand_processor_config = HandProcessorConfig()
+        hand_processor_config = HandProcessorConfig(self.samples_id)
         hand_processor_results_dir = hand_processor_config.hand_processor_results_dir
         vertices_aligned = []
         for file in os.listdir(hand_processor_results_dir):
@@ -151,7 +151,7 @@ class DataManager:
     
     # read contact processor results
     def _read_contact_joint_out(self, sample_id: int) -> List[np.ndarray]:
-        contact_processor_config = ContactProcessorConfig()
+        contact_processor_config = ContactProcessorConfig(self.samples_id)
         contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
         contact_joint_out = []
         for file in os.listdir(contact_processor_results_dir):
@@ -160,7 +160,7 @@ class DataManager:
         return contact_joint_out
     
     def _read_contact_out(self, sample_id: int) -> List[np.ndarray]:
-        contact_processor_config = ContactProcessorConfig()
+        contact_processor_config = ContactProcessorConfig(self.samples_id)
         contact_processor_results_dir = contact_processor_config.contact_processor_results_dir
         contact_out = []
         for file in os.listdir(contact_processor_results_dir):

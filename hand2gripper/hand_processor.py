@@ -146,20 +146,22 @@ class HandProcessor:
                 'joints_2d': _to_numpy(reconstruction_results['joints_2d'][idx]).astype(np.int32),  # (21, 2)
                 'img_size': _to_numpy(reconstruction_results.get('img_size')).astype(np.int32)      # (W,H)
             }
-            breakpoint()
             out_path = os.path.join(save_dir, f"{sample_id}_{idx}.npz")
             np.savez_compressed(out_path, **data)
 
 
 if __name__ == '__main__':
-    hand_processor_config = HandProcessorConfig()
-    hand_processor = HandProcessor(hand_processor_config)
-    video_path = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw/0/video.mp4"
-    depth_npy_path = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw/0/depth.npy"
-    video = mediapy.read_video(video_path)
-    depth_npy = np.load(depth_npy_path)
-    assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
-    for idx in tqdm.tqdm(range(len(video)), desc="Hand Processor: Processing samples"):
-        color_image = video[idx]
-        depth_image = depth_npy[idx]  # meters
-        hand_processor._process_single_sample(idx, color_image, depth_image)
+    root_samples_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
+    for samples_id in os.listdir(root_samples_dir):
+        if os.path.isdir(os.path.join(root_samples_dir, samples_id)):
+            hand_processor_config = HandProcessorConfig(samples_id)
+            hand_processor = HandProcessor(hand_processor_config)
+            video_path = os.path.join(root_samples_dir, samples_id, "video.mp4")
+            depth_npy_path = os.path.join(root_samples_dir, samples_id, "depth.npy")
+            video = mediapy.read_video(video_path)
+            depth_npy = np.load(depth_npy_path)  # meters
+            assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
+            for idx in tqdm.tqdm(range(len(video)), desc="Hand Processor: Processing samples"):
+                color_image = video[idx]
+                depth_image = depth_npy[idx]  # meters
+                hand_processor._process_single_sample(idx, color_image, depth_image)

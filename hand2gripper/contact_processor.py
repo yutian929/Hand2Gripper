@@ -11,11 +11,11 @@ from processor_config import ContactProcessorConfig, DataManager
 from utils.common import read_color_image, read_depth_image, _to_numpy
 
 class ContactProcessor:
-    def __init__(self, contact_processor_config: ContactProcessorConfig):
+    def __init__(self, contact_processor_config: ContactProcessorConfig, data_manager: DataManager):
         # config
         self.contact_processor_config = contact_processor_config
         self.output_dir = self.contact_processor_config.processor_output_dir
-        self.data_manager = DataManager()
+        self.data_manager = data_manager
         # contact estimator
         self.contact_estimator = HACOContactEstimator(backbone=self.contact_processor_config.backbone, checkpoint_path=self.contact_processor_config.checkpoint_path, experiment_dir=self.contact_processor_config.log_dir)
         # vis
@@ -119,14 +119,18 @@ class ContactProcessor:
 
 
 if __name__ == '__main__':
-    contact_processor_config = ContactProcessorConfig()
-    contact_processor = ContactProcessor(contact_processor_config)
-    video_path = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw/0/video.mp4"
-    depth_npy_path = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw/0/depth.npy"
-    video = mediapy.read_video(video_path)
-    depth_npy = np.load(depth_npy_path)
-    assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
-    for idx in tqdm.tqdm(range(len(video)), desc="Contact Processor: Processing samples"):
-        color_image = video[idx]
-        depth_image = depth_npy[idx]  # meters
-        contact_processor._process_single_sample(idx, color_image, depth_image)
+    root_samples_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
+    for samples_id in os.listdir(root_samples_dir):
+        if os.path.isdir(os.path.join(root_samples_dir, samples_id)):
+            contact_processor_config = ContactProcessorConfig(samples_id)
+            data_manager = DataManager(samples_id)
+            contact_processor = ContactProcessor(contact_processor_config, data_manager)
+            video_path = os.path.join(root_samples_dir, samples_id, "video.mp4")
+            depth_npy_path = os.path.join(root_samples_dir, samples_id, "depth.npy")
+            video = mediapy.read_video(video_path)
+            depth_npy = np.load(depth_npy_path)  # meters
+            assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
+            for idx in tqdm.tqdm(range(len(video)), desc="Contact Processor: Processing samples"):
+                color_image = video[idx]
+                depth_image = depth_npy[idx]  # meters
+                contact_processor._process_single_sample(idx, color_image, depth_image)
