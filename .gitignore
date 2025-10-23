@@ -4,3 +4,6 @@ hand2gripper/raw/
 hand2gripper/output/
 hand2gripper/base_data/
 *.pt
+*.mp4
+*.npy
+*.npz
