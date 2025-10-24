@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Union, List, Tuple
 
 from hand2gripper_wilor import HandDetector, WiLoRModel, HandRenderer
-from processor_config import HandProcessorConfig
+from processor_config import HandProcessorConfig, DataManager
 from utils.common import read_color_image, read_depth_image, _to_numpy
 from utils.visualize import vis_hand_mesh, vis_hand_2D_skeleton
 
@@ -153,6 +153,7 @@ class HandProcessor:
 if __name__ == '__main__':
     root_samples_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
     for samples_id in os.listdir(root_samples_dir):
+        data_manager = DataManager(samples_id)
         if os.path.isdir(os.path.join(root_samples_dir, samples_id)):
             hand_processor_config = HandProcessorConfig(samples_id)
             hand_processor = HandProcessor(hand_processor_config)
@@ -161,7 +162,9 @@ if __name__ == '__main__':
             video = mediapy.read_video(video_path)
             depth_npy = np.load(depth_npy_path)  # meters
             assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
-            for idx in tqdm.tqdm(range(len(video)), desc="Hand Processor: Processing samples"):
+            for idx in tqdm.tqdm(range(len(video)), desc=f"Hand Processor: Processing samples {os.path.join(root_samples_dir, samples_id)}"):
+                if len(data_manager._read_hand_processor_results(idx)) > 0:
+                    continue    
                 color_image = video[idx]
                 depth_image = depth_npy[idx]  # meters
                 hand_processor._process_single_sample(idx, color_image, depth_image)

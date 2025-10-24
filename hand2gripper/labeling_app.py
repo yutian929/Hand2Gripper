@@ -15,6 +15,7 @@ class LabelingApp:
         self.labeling_app_color_image_dir = self.labeling_app_config.labeling_app_color_image_dir
         self.labeling_app_depth_npy_dir = self.labeling_app_config.labeling_app_depth_npy_dir
         self.data_manager = data_manager
+        self.last_chosen_gripper_joints_seq = [0, 0, 0]
 
     def _process_single_sample(self, sample_id: int, color_image: np.ndarray, depth_image: np.ndarray):
         color = read_color_image(color_image)
@@ -30,8 +31,8 @@ class LabelingApp:
         assert len(bboxes) == len(is_right) == len(joints_2d) == len(contact_joint_out) == len(vertices_aligned) == len(joints) == len(contact_out), "Number of bboxes, is_right, joints_2d, contact_joint_out, vertices_aligned, joints, and contact_out must be the same"
         
         for hand_id in range(len(is_right)):
-            # selected_gripper_joints_seq = self._choose_gripper_joints_seq(sample_id, hand_id, color, bboxes[hand_id], is_right[hand_id], joints_2d[hand_id], contact_joint_out[hand_id])
-            selected_gripper_joints_seq = [8, 4]
+            selected_gripper_joints_seq = self._choose_gripper_joints_seq(sample_id, hand_id, color, bboxes[hand_id], is_right[hand_id], joints_2d[hand_id], contact_joint_out[hand_id])
+            # selected_gripper_joints_seq = [0, 4, 4] if is_right[hand_id] == 1 else [0 , 4, 15]
             print(f"Selected gripper joints sequence for hand {hand_id}: {selected_gripper_joints_seq}")
             self._save_label_results(sample_id, hand_id, bboxes[hand_id],is_right[hand_id], vertices_aligned[hand_id], joints[hand_id], contact_out[hand_id], contact_joint_out[hand_id], selected_gripper_joints_seq, self.labeling_app_results_dir)
             self._save_color_image(sample_id, hand_id, color, self.labeling_app_color_image_dir)
@@ -53,8 +54,10 @@ class LabelingApp:
         hand_2d_skeleton_image = vis_hand_2D_skeleton_contact(color, joints_2d_hand, bbox, is_right_hand, contact_joint_out_hand, eval_threshold=0.1)
         
         def draw_gripper_joints_seq(image: np.ndarray, joints_seq: List[int], joints_2d_hand: np.ndarray) -> np.ndarray:
-            """在图像上绘制L和R标记"""
-            left_joint_id, right_joint_id = joints_seq
+            """在图像上绘制Base, Left, Right标记"""
+            base_joint_id, left_joint_id, right_joint_id = joints_seq
+            cv2.putText(image, f"B", (int(joints_2d_hand[base_joint_id][0]), int(joints_2d_hand[base_joint_id][1])), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             cv2.putText(image, f"L", (int(joints_2d_hand[left_joint_id][0]), int(joints_2d_hand[left_joint_id][1])), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             cv2.putText(image, f"R", (int(joints_2d_hand[right_joint_id][0]), int(joints_2d_hand[right_joint_id][1])), 
@@ -66,11 +69,14 @@ class LabelingApp:
             cv2.waitKey(100)
             
             try:
-                user_input = input("Enter the gripper joints sequence (2 integers separated by blank): ")
-                gripper_joints_seq = [int(x) for x in user_input.split(' ')]
+                user_input = input(f"Enter the gripper joints sequence (3 integers separated by blank, last chosen(Base, Left, Right): {self.last_chosen_gripper_joints_seq}): ")
+                if user_input == '':
+                    gripper_joints_seq = self.last_chosen_gripper_joints_seq
+                else:
+                    gripper_joints_seq = [int(x) for x in user_input.split(' ')]
                 
-                if len(gripper_joints_seq) != 2 or not all(0 <= joint_id <= 20 for joint_id in gripper_joints_seq):
-                    print("Invalid input. Please enter 2 joint IDs between 0 and 20 (e.g., 1 2).")
+                if len(gripper_joints_seq) != 3 or not all(0 <= joint_id <= 20 for joint_id in gripper_joints_seq):
+                    print("Invalid input. Please enter 3 joint IDs (base, left, right) between 0 and 20 (e.g., 1 2 3).")
                     continue
                 
                 annotated_image = draw_gripper_joints_seq(hand_2d_skeleton_image.copy(), gripper_joints_seq, joints_2d_hand)
@@ -79,11 +85,12 @@ class LabelingApp:
                 
                 confirm = input("Confirm the selection? (y/n or press Enter): ").lower().strip()
                 if confirm in ['', 'y', 'yes']:
+                    self.last_chosen_gripper_joints_seq = gripper_joints_seq
                     break
                 print("Selection cancelled. Please try again.")
                 
             except ValueError:
-                print("Invalid input. Please enter 2 integers separated by blank (e.g., 1 2).")
+                print("Invalid input. Please enter 3 integers (base, left, right) separated by blank (e.g., 1 2 3).")
         
         cv2.destroyAllWindows()
         return gripper_joints_seq
@@ -97,8 +104,9 @@ class LabelingApp:
             'joints': _to_numpy(joints),
             'contact_out': _to_numpy(contact_out),
             'contact_joint_out': _to_numpy(contact_joint_out),
-            'gripper_left_joint_id': _to_numpy(selected_gripper_joints_seq[0]),
-            'gripper_right_joint_id': _to_numpy(selected_gripper_joints_seq[1]),
+            'gripper_left_joint_id': _to_numpy(selected_gripper_joints_seq[1]),
+            'gripper_right_joint_id': _to_numpy(selected_gripper_joints_seq[2]),
+            'gripper_base_joint_id': _to_numpy(selected_gripper_joints_seq[0]),
         }
         out_path = os.path.join(save_dir, f"{sample_id}_{hand_id}.npz")
         np.savez_compressed(out_path, **data)
@@ -117,6 +125,8 @@ class LabelingApp:
 if __name__ == '__main__':
     raw_samples_root_dir = "/home/yutian/projs/Hand2Gripper/hand2gripper/raw"
     for samples_id in os.listdir(raw_samples_root_dir):
+        # if samples_id != '10':
+        #     continue
         if os.path.isdir(os.path.join(raw_samples_root_dir, samples_id)):
             labeling_app_config = LabelingAppConfig(samples_id)
             data_manager = DataManager(samples_id)
@@ -126,7 +136,9 @@ if __name__ == '__main__':
             video = mediapy.read_video(video_path)
             depth_npy = np.load(depth_npy_path)  # meters
             assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
-            for idx in tqdm.tqdm(range(len(video)), desc="Labeling App: Processing samples"):
+            for idx in tqdm.tqdm(range(len(video)), desc=f"Labeling App: Processing samples {os.path.join(raw_samples_root_dir, samples_id)}"):
+                if len(data_manager._read_labeling_app_results(idx)) > 0:
+                    continue
                 color_image = video[idx]
                 depth_image = depth_npy[idx]  # meters
                 labeling_app._process_single_sample(idx, color_image, depth_image)

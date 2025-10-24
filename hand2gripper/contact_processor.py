@@ -130,7 +130,9 @@ if __name__ == '__main__':
             video = mediapy.read_video(video_path)
             depth_npy = np.load(depth_npy_path)  # meters
             assert len(video) == len(depth_npy), "Number of frames in video and depth image must be the same"
-            for idx in tqdm.tqdm(range(len(video)), desc="Contact Processor: Processing samples"):
+            for idx in tqdm.tqdm(range(len(video)), desc=f"Contact Processor: Processing samples {os.path.join(raw_samples_root_dir, samples_id)}"):
+                if len(data_manager._read_contact_processor_results(idx)) > 0:
+                    continue
                 color_image = video[idx]
                 depth_image = depth_npy[idx]  # meters
                 contact_processor._process_single_sample(idx, color_image, depth_image)

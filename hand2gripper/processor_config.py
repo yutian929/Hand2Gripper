@@ -47,6 +47,9 @@ class HandProcessorConfig(BaseConfig):
     self.vis_hand_2D_skeleton_images_dir = os.path.join(self.processor_output_dir, "vis_hand_2D_skeleton_images")
     self.vis_hand_mesh_images_dir = os.path.join(self.processor_output_dir, "vis_hand_mesh_images")
     self.hand_processor_results_dir = os.path.join(self.processor_output_dir, "hand_processor_results")
+    os.makedirs(self.vis_hand_2D_skeleton_images_dir, exist_ok=True)
+    os.makedirs(self.vis_hand_mesh_images_dir, exist_ok=True)
+    os.makedirs(self.hand_processor_results_dir, exist_ok=True)
 
 
 
@@ -72,17 +75,24 @@ class ContactProcessorConfig(BaseConfig):
     self.vis_contact_rendered_images_dir = os.path.join(self.processor_output_dir, "vis_contact_rendered_images")
     self.vis_crop_img_images_dir = os.path.join(self.processor_output_dir, "vis_crop_img_images")
     self.contact_processor_results_dir = os.path.join(self.processor_output_dir, "contact_processor_results")
+    os.makedirs(self.vis_contact_rendered_images_dir, exist_ok=True)
+    os.makedirs(self.vis_crop_img_images_dir, exist_ok=True)
+    os.makedirs(self.contact_processor_results_dir, exist_ok=True)
 
 
 # Labeling App Config
 class LabelingAppConfig(BaseConfig):
   def __init__(self, samples_id: str):
     super().__init__()
+    # Base Config
     self.labeling_app_output_dir = os.path.join(self.base_output_dir, samples_id, 'labeling_app')
+    # save
     self.labeling_app_results_dir = os.path.join(self.labeling_app_output_dir, 'labeling_app_results')
     self.labeling_app_color_image_dir = os.path.join(self.labeling_app_output_dir, 'color_image')
     self.labeling_app_depth_npy_dir = os.path.join(self.labeling_app_output_dir, 'depth_npy')
-
+    os.makedirs(self.labeling_app_results_dir, exist_ok=True)
+    os.makedirs(self.labeling_app_color_image_dir, exist_ok=True)
+    os.makedirs(self.labeling_app_depth_npy_dir, exist_ok=True)
 
 
 
@@ -94,6 +104,14 @@ class DataManager:
         self.labeling_app_config = LabelingAppConfig(self.samples_id)
 
     # read hand processor results
+    def _read_hand_processor_results(self, sample_id: int) -> List[dict]:
+        hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
+        hand_processor_results = []
+        for file in os.listdir(hand_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                hand_processor_results.append(np.load(os.path.join(hand_processor_results_dir, file)))
+        return hand_processor_results
+    
     def _read_bbox(self, sample_id: int) -> List[np.ndarray]:
         hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
         bboxes = []
@@ -152,6 +170,14 @@ class DataManager:
         return vertices_aligned
     
     # read contact processor results
+    def _read_contact_processor_results(self, sample_id: int) -> List[dict]:
+        contact_processor_results_dir = self.contact_processor_config.contact_processor_results_dir
+        contact_processor_results = []
+        for file in os.listdir(contact_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                contact_processor_results.append(np.load(os.path.join(contact_processor_results_dir, file)))
+        return contact_processor_results
+        
     def _read_contact_joint_out(self, sample_id: int) -> List[np.ndarray]:
         contact_processor_results_dir = self.contact_processor_config.contact_processor_results_dir
         contact_joint_out = []
