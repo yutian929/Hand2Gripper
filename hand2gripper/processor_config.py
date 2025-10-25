@@ -94,6 +94,31 @@ class LabelingAppConfig(BaseConfig):
     os.makedirs(self.labeling_app_color_image_dir, exist_ok=True)
     os.makedirs(self.labeling_app_depth_npy_dir, exist_ok=True)
 
+# Hand2Gripper Processor Config
+HAND2GRIPPER_PROCESSOR_MODEL_PATH = os.path.join(ROOT_DIR, 'hand2gripper.pt')
+HAND2GRIPPER_PROCESSOR_DEVICE = 'auto'
+HAND2GRIPPER_PROCESSOR_IMG_SIZE = 256
+HAND2GRIPPER_PROCESSOR_D_MODEL = 256
+HAND2GRIPPER_PROCESSOR_VIS_GRIPPER_BASE_LEFT_RIGHT = True
+
+
+class Hand2GripperProcessorConfig(BaseConfig):
+  def __init__(self, samples_id: str):
+    super().__init__()
+    # Base Config
+    self.processor_output_dir = os.path.join(self.base_output_dir, samples_id, 'hand2gripper_processor')
+    # model
+    self.model_path = HAND2GRIPPER_PROCESSOR_MODEL_PATH
+    self.device = HAND2GRIPPER_PROCESSOR_DEVICE
+    self.img_size = HAND2GRIPPER_PROCESSOR_IMG_SIZE
+    self.d_model = HAND2GRIPPER_PROCESSOR_D_MODEL
+    # vis
+    self.vis_gripper_base_left_right = HAND2GRIPPER_PROCESSOR_VIS_GRIPPER_BASE_LEFT_RIGHT
+    # save
+    self.vis_gripper_base_left_right_images_dir = os.path.join(self.processor_output_dir, "vis_gripper_base_left_right_images")
+    self.hand2gripper_processor_results_dir = os.path.join(self.processor_output_dir, "hand2gripper_processor_results")
+    os.makedirs(self.vis_gripper_base_left_right_images_dir, exist_ok=True)
+    os.makedirs(self.hand2gripper_processor_results_dir, exist_ok=True)
 
 
 class DataManager:
@@ -102,7 +127,7 @@ class DataManager:
         self.hand_processor_config = HandProcessorConfig(self.samples_id)
         self.contact_processor_config = ContactProcessorConfig(self.samples_id)
         self.labeling_app_config = LabelingAppConfig(self.samples_id)
-
+        self.hand2gripper_processor_config = Hand2GripperProcessorConfig(self.samples_id)
     # read hand processor results
     def _read_hand_processor_results(self, sample_id: int) -> List[dict]:
         hand_processor_results_dir = self.hand_processor_config.hand_processor_results_dir
@@ -218,3 +243,12 @@ class DataManager:
             if file.startswith(f"{sample_id}_"):
                 labeling_app_depth_npy.append(np.load(os.path.join(labeling_app_depth_npy_dir, file)))
         return labeling_app_depth_npy
+    
+    # read hand2gripper processor results
+    def _read_hand2gripper_processor_results(self, sample_id: int) -> List[dict]:
+        hand2gripper_processor_results_dir = self.hand2gripper_processor_config.hand2gripper_processor_results_dir
+        hand2gripper_processor_results = []
+        for file in os.listdir(hand2gripper_processor_results_dir):
+            if file.startswith(f"{sample_id}_"):
+                hand2gripper_processor_results.append(np.load(os.path.join(hand2gripper_processor_results_dir, file)))
+        return hand2gripper_processor_results

@@ -27,6 +27,7 @@ class ContactProcessor:
         self.contact_processor_results_dir = self.contact_processor_config.contact_processor_results_dir
 
     def _process_single_sample(self, sample_id: int, color_image: Union[str, np.ndarray], depth_image: Union[str, np.ndarray]) -> np.ndarray:
+        main_results = []
         # read image
         color = read_color_image(color_image)
         depth = read_depth_image(depth_image)
@@ -55,7 +56,9 @@ class ContactProcessor:
             if self.vis_crop_img:
                 self._vis_crop_img_images(sample_id, idx, contact_results['crop_img'], self.vis_crop_img_images_dir)
             # save
-            self._save_contact_results(sample_id, idx, contact_results, self.contact_processor_results_dir)
+            data = self._save_contact_results(sample_id, idx, contact_results, self.contact_processor_results_dir)
+            main_results.append(data)
+        return main_results
 
     def _vis_contact_rendered_images(self, sample_id: int, hand_id: int, contact_rendered: np.ndarray, save_dir: str):
         os.makedirs(save_dir, exist_ok=True)
@@ -116,6 +119,7 @@ class ContactProcessor:
         }
         out_path = os.path.join(save_dir, f"{sample_id}_{hand_id}.npz")
         np.savez_compressed(out_path, **data)
+        return data
 
 
 if __name__ == '__main__':

@@ -70,7 +70,8 @@ class HandProcessor:
                 self._vis_hand_mesh_images(sample_id, color, bboxes, is_right, reconstruction_results, self.vis_hand_mesh_images_dir)
         
         # save results
-        self._save_results(sample_id, bboxes, is_right, reconstruction_results, self.hand_processor_results_dir)
+        main_results = self._save_results(sample_id, bboxes, is_right, reconstruction_results, self.hand_processor_results_dir)
+        return main_results
 
     def _vis_hand_2D_skeleton_images(self, sample_id: int, color: np.ndarray, bboxes: List[List[int]], is_right: List[bool], reconstruction_results: dict, save_dir: str):
         os.makedirs(save_dir, exist_ok=True)
@@ -132,6 +133,7 @@ class HandProcessor:
         return reconstruction_results['vertices']
 
     def _save_results(self, sample_id: int, bboxes: List[List[int]], is_right: List[bool], reconstruction_results: dict, save_dir: str):
+        main_results = []
         os.makedirs(save_dir, exist_ok=True)
         assert len(bboxes) == len(is_right) == len(reconstruction_results['vertices']), "Number of bboxes, is_right, and vertices must be the same"
         for idx in range(len(reconstruction_results['vertices'])):
@@ -148,6 +150,8 @@ class HandProcessor:
             }
             out_path = os.path.join(save_dir, f"{sample_id}_{idx}.npz")
             np.savez_compressed(out_path, **data)
+            main_results.append(data)
+        return main_results
 
 
 if __name__ == '__main__':

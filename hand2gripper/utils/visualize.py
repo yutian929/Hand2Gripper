@@ -147,3 +147,19 @@ def vis_hand_2D_skeleton_contact(image: np.ndarray, joints_2d: np.ndarray, bbox:
         if contact_joint_out[i] > eval_threshold:
             cv2.circle(vis_image, (int(joints_2d[i][0]), int(joints_2d[i][1])), 3, contact_color, -1)
     return vis_image
+
+def vis_choose_gripper(image: np.ndarray, joints_2d: np.ndarray, base_left_right_joint_ids: np.array, gripper_color: Tuple[int, int, int] = (0, 255, 0)) -> np.ndarray:
+    """
+    在图像上可视化选择gripper
+    """
+    vis_image = image.copy()
+    # 绘制base关节点
+    cv2.circle(vis_image, (int(joints_2d[base_left_right_joint_ids[0]][0]), int(joints_2d[base_left_right_joint_ids[0]][1])), 3, gripper_color, -1)
+    cv2.putText(vis_image, "B", (int(joints_2d[base_left_right_joint_ids[0]][0]), int(joints_2d[base_left_right_joint_ids[0]][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, gripper_color, 2)
+    # 绘制left关节点
+    cv2.circle(vis_image, (int(joints_2d[base_left_right_joint_ids[1]][0]), int(joints_2d[base_left_right_joint_ids[1]][1])), 3, gripper_color, -1)
+    cv2.putText(vis_image, "L", (int(joints_2d[base_left_right_joint_ids[1]][0]), int(joints_2d[base_left_right_joint_ids[1]][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, gripper_color, 2)
+    # 绘制right关节点
+    cv2.circle(vis_image, (int(joints_2d[base_left_right_joint_ids[2]][0]), int(joints_2d[base_left_right_joint_ids[2]][1])), 3, gripper_color, -1)
+    cv2.putText(vis_image, "R", (int(joints_2d[base_left_right_joint_ids[2]][0]), int(joints_2d[base_left_right_joint_ids[2]][1])), cv2.FONT_HERSHEY_SIMPLEX, 0.5, gripper_color, 2)
+    return vis_image
